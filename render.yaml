@@ -1,0 +1,6 @@
+services:
+  - type: web
+    name: starmind-exam
+    runtime: docker
+    plan: free
+    healthCheckPath: /

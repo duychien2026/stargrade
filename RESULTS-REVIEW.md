@@ -1,0 +1,11 @@
+# Sheet review and corrections
+
+Native `<dialog>` elements are appended to `document.body` and opened with `showModal()`. This fixes the clipped/covered viewer caused by the previous modal being trapped in the results page's stacking context below the green header. The viewer stays within `100dvh`; its header and footer remain visible while the image/editor scroll. On desktop the editor sits beside the image; on mobile it follows the image in a scrollable body. Existing image/ring geometry is retained.
+
+Previous/next follows the results table order, including rows without an image; first/last buttons are disabled at the boundaries. The viewer edits SBD, name, code, Part I dot choices, Part II Đ/S choices, blank/uncertain choices and Part III strings. Unsaved navigation/closing requires an inline discard decision. Saving updates only the current submission, regrades it with the shared scorer, refreshes its rings/title and redraws its table row and warning state. No new submission is created.
+
+`PUT /api/exams/{examId}/submissions/{submissionId}` requires authentication and exam ownership. It checks that the row belongs to the exam and the code has a key, validates part lengths/characters, rematches names when SBD changes, and preserves the original image and creation date. It returns the updated submission with scores and fresh flags. Failed validation does not mutate the store. The client only attaches new scan/name images to POST requests, preventing a stale scan from replacing images during correction.
+
+The warning column displays an accessible amber icon only for rows with flags. Clicking it opens a separate dialog listing the row's warnings, using text nodes rather than interpolating warning HTML.
+
+Validation: `php tests/submission-edit.php`, existing regrade/exam/key-editor regressions, syntax checks. Browser QA used an isolated copy of the real PHP application and synthetic records, not a production account/store. Verified warning popup, edits across all three parts + SBD/code, persisted score 4.25 → 6.5, rematched student name, cleared flags, next/previous including no-image rows, unsaved edit handling, no console errors, and 390 × 844 mobile geometry (dialog top 6px, bottom 838px; footer inside viewport; no horizontal overflow).
