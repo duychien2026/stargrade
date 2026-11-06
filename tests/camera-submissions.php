@@ -1,0 +1,16 @@
+<?php
+require __DIR__.'/../src/scoring.php';require __DIR__.'/../src/submission-edit.php';require __DIR__.'/../src/camera-submissions.php';
+function next_id($rows){return $rows?max(array_column($rows,'id'))+1:1;}
+function check($yes,$why){if(!$yes)throw new RuntimeException($why);}
+$seed=['exams'=>[['id'=>1,'user_id'=>7,'sheet_template'=>'bgd2','question_count'=>2,'part2_count'=>1,'part3_count'=>1,'part1_point'=>.25,'part2_points'=>[.1,.25,.5,1],'part3_point'=>.5]],'keys'=>[['exam_id'=>1,'code'=>'0101','answers'=>'AB','part2'=>['ĐSĐS'],'part3'=>['-1,2']]],'students'=>[],'submissions'=>[]];
+$body=['capture_source'=>'camera','client_request_id'=>'request-000000001','student_no'=>'00000001','code'=>'0101','answers'=>'AB','part2'=>['ĐSĐS'],'part3'=>['-1,2'],'auto_save'=>true,'image_data'=>'original-image'];
+$data=$seed;$first=camera_create($data,7,1,$body);check($first['score']===2.0,'all parts score');check(camera_create($data,7,1,$body)===$first&&count($data['submissions'])===1,'retry idempotency');
+try{camera_create($data,7,1,array_replace($body,['client_request_id'=>'request-000000002']));throw new Exception('duplicate accepted');}catch(CameraDuplicate $e){check($e->existingId===$first['id'],'duplicate identity');}
+$replacement=camera_create($data,7,1,array_replace($body,['client_request_id'=>'request-000000002','replace_submission_id'=>$first['id'],'answers'=>'CD']));check(count($data['submissions'])===1&&$replacement['score']===1.5,'replacement score');camera_undo($data,7,1,$replacement['id'],$replacement['_capture_token']);check($data['submissions'][0]['answers']==='AB','undo restores previous');camera_undo($data,7,1,$replacement['id'],$replacement['_capture_token']);
+$data=$seed;$first=camera_create($data,7,1,$body);camera_undo($data,7,1,$first['id'],$first['_capture_token']);check(!empty($data['submissions'][0]['deleted_at']),'undo new row soft deletes');
+$data=$seed;$first=camera_create($data,7,1,$body);edit_submission($data,7,1,$first['id'],['answers'=>'CD']);try{camera_undo($data,7,1,$first['id'],$first['_capture_token']);throw new Exception('stale undo accepted');}catch(RuntimeException $e){check($e->getCode()===409,'stale undo status');}
+foreach([['answers'=>'A-'],['student_no'=>'?'],['part2'=>['Đ---']],['part3'=>['']],['code'=>'9999']] as $change){$data=$seed;try{camera_create($data,7,1,array_replace($body,$change));throw new Exception('unsafe auto accepted');}catch(RuntimeException $e){check($e->getCode()===422,'auto rejection status');check($data===$seed,'failed save mutated data');}}
+$data=$seed;try{camera_create($data,8,1,$body);throw new Exception('other owner accepted');}catch(RuntimeException $e){check($e->getCode()===404,'ownership');}
+$data=$seed;$data['exams'][0]['sheet_template']='qmcv4';$cv4=camera_create($data,7,1,array_replace($body,['student_no'=>'012345','name_image'=>'phach-crop']));check($cv4['student_no']==='012345'&&$cv4['name_image']==='phach-crop','CV4 six-digit SBD and fallback crop');
+try{$data=$seed;$data['exams'][0]['sheet_template']='qmcv4';camera_create($data,7,1,$body);throw new Exception('wrong CV4 SBD length accepted');}catch(RuntimeException $e){check($e->getCode()===422,'CV4 eight digits rejected');}
+echo "PASS camera save: grading, idempotency, duplicate, replace, undo/restore, stale undo, auto validation, ownership\n";

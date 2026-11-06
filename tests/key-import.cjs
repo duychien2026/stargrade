@@ -1,0 +1,11 @@
+const assert=require('node:assert/strict'),fs=require('fs'),X=require('../public/vendor/xlsx.full.min.js'),A=require('../public/key-import-formats.js');
+const workbook=rows=>({SheetNames:['Answers'],Sheets:{Answers:X.utils.aoa_to_sheet(rows)}});
+const source=A.parseWorkbook(workbook([['Đề\\Câu',1,2,3,4,'1a','1b','1c','1d',1,2],['001','A','B','','','D','S','D','S','-1,2','0']]),X)[0];
+assert.equal(source.code,'0001');assert.equal(source.answers,'AB--');assert.deepEqual(source.part2,['ĐSĐS']);assert.deepEqual(source.part3,['-1,2','0']);
+const key=A.fit(source,{part1:2,part2:1,part3:2},'0001');assert.equal(key.answers,'AB');assert.equal(key.part3[1],'0');
+const qr=A.parseQR('{"001":"AB","success":true,"type":1}');const preserved=A.fit(qr[0],{part1:2,part2:1,part3:2},'0001',key);assert.deepEqual(preserved.part2,key.part2);assert.deepEqual(preserved.part3,key.part3);
+const fullQR=A.parseQR('{"001":"AB#ĐSĐS#-1.2_0","type":6}')[0];assert.deepEqual(A.fit(fullQR,{part1:2,part2:1,part3:2},'0001'),key);
+const vertical=A.parseWorkbook(workbook([['Example'],['Câu\\Mã đề','001','002'],[1,'A','B'],[2,'C','D'],[3,'ĐSĐS','SĐSĐ'],[4,'-1,2','0']]),X);assert.equal(vertical.length,2);assert.equal(vertical[0].answers,'AC');assert.deepEqual(vertical[0].part2,['ĐSĐS']);assert.deepEqual(vertical[1].part3,['0']);
+assert.throws(()=>A.fit(source,{part1:1,part2:1,part3:2},'0001'),/vượt/);assert.throws(()=>A.parseQR('{"101":"AB","0101":"AC"}'),/trùng/);assert.throws(()=>A.parseQR('https://example.com/'),/JSON/);assert.throws(()=>A.record({code:'101',answers:'<script>'}),/Phần I/);assert.throws(()=>A.record({code:'101',part2:['ĐSĐS']}),/Phần I/);assert.throws(()=>A.parseWorkbook(workbook([['Đề\\câu',1,1],['101','A','B']]),X),/trùng/);
+assert(!fs.readFileSync('public/user-preferences.js','utf8').includes('camera_zoom'));assert(!fs.readFileSync('public/app.js','utf8').includes('applySavedCameraZoom'));
+console.log('PASS import: wide/vertical Excel, multi-code QR, D/S and decimal/zero values, missing sections preserved, invalid/duplicate/excess answers rejected, zoom removed');

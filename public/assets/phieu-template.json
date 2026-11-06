@@ -1,0 +1,16 @@
+{
+  "id": "tlt n-2025-4-digit-bw",
+  "name": "Phiếu TLTN 2025 mã đề 4 số đen trắng",
+  "source": "phieu-chinh.pdf",
+  "page_size_pt": { "width": 558.72, "height": 811.44 },
+  "markers": "four-corner-black-squares",
+  "sections": {
+    "candidate_id": { "region": [0.67, 0.10, 0.84, 0.31], "rows": 10, "columns": 6 },
+    "exam_code": { "region": [0.86, 0.10, 0.96, 0.31], "rows": 10, "columns": 4 },
+    "part_1": { "region": [0.07, 0.36, 0.92, 0.55], "questions": 40, "choices": ["A", "B", "C", "D"] },
+    "part_2": { "region": [0.07, 0.56, 0.92, 0.70], "questions": 8, "choices": ["Đ", "S"] },
+    "part_3": { "region": [0.07, 0.71, 0.92, 0.96], "questions": 6, "digits": ["-", ",", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9"] }
+  },
+  "coordinate_note": "Regions are normalized to the full page and must be calibrated against the four black corner markers before production OMR.",
+  "version": 1
+}
